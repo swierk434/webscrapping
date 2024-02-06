@@ -7,7 +7,8 @@ from PIL import Image
 import numpy as np
 from scipy.signal import convolve2d
 import time
-import concurrent.futures
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import multiprocessing
 
 def get_png_linksnnames(url):
     try:
@@ -62,11 +63,6 @@ def func_stack(link, name):
     image = filter_image(image)
     save_image_from_image(image, name) 
 
-def job2(element_pair):
-    element1, element2 = element_pair
-    return func_stack(element1, element2)
-     
-
 def main1():
     start_time = time.time()
     links, names = get_png_linksnnames("https://www.if.pw.edu.pl/~mrow/dyd/wdprir/")
@@ -80,9 +76,10 @@ def main2():
     start_time = time.time()
     links, names = get_png_linksnnames("https://www.if.pw.edu.pl/~mrow/dyd/wdprir/")
 
-    num_threads = 10
-    with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-        executor.map(job1, zip(links, names))
+    num_threads = multiprocessing.cpu_count()
+    with ProcessPoolExecutor(max_workers=num_threads) as executor:
+        for link, name in zip(links, names):
+            executor.submit(save_image_from_link, link, name)
 
     end_time = time.time()
     elapsed_time = end_time - start_time
@@ -103,15 +100,17 @@ def main4():
     start_time = time.time()
     links, names = get_png_linksnnames("https://www.if.pw.edu.pl/~mrow/dyd/wdprir/")
     
-    num_threads = 10
-    with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-        executor.map(job2, zip(links, names))  
+    num_threads = multiprocessing.cpu_count()
+    with ProcessPoolExecutor(max_workers=num_threads) as executor:
+        for link, name in zip(links, names):
+            executor.submit(func_stack, link, name)
     
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Main4: {elapsed_time} seconds")
 
-main1()
-main2()
-main3()
-main4()
+if __name__ == '__main__':
+    main1()
+    main2()
+    main3()
+    main4()
